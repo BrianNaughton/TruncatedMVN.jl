@@ -1,7 +1,21 @@
+# This implements an efficient sampler for the univariate truncated
+# standard normal distribution from:
+
+# Y. Li and S. Ghosh (2015)
+# "Efficient Sampling Methods for Truncated Multivariate Normal and Student-t
+#  Distributions Subject to Linear Inequality Constraints"
+# Journal of Statistical Theory & Practice
+# doi: 10.1080/15598608.2014.996690
+# http://dx.doi.org/10.1080/15598608.2014.996690
+
 immutable TruncatedNormalSampler <: Sampleable{Univariate, Continuous}
   a::Float64       # Lower bound
   b::Float64       # Upper bound
-  m::ASCIIString   # Sampling method to use: NR, HR, UR or ER
+  m::ASCIIString   # Sampling method to use:
+                   #   NR: Normal rejection sampling
+                   #   HR: Half-Normal rejection sampling
+                   #   UR: Uniform rejection sampling
+                   #   ER: Translated exponential rejection sampling
   sgn::Int64       # Change sign of result to be returned?
 end
 
@@ -10,7 +24,7 @@ function TruncatedNormalSampler(a, b)
   sgn = 1
   a0 = 0.2570
 
-  # Needs to work for untracated regions
+  # Needs to work for untruncated regions
   a == -Inf && b == Inf && return TruncatedNormalSampler(a, b, "NR", sgn)
 
   # Symmetric case, return negative of result
@@ -52,7 +66,6 @@ function rand(s::TruncatedNormalSampler)
       x >= a && x <= b && return x*sgn
     end
   elseif s.m == "UR"
-#     pc::Float64   # Constant in acceptance probability
     Zd = Normal(0, 1)
     Uab = Uniform(a, b)
     pc = (cdf(Zd, b) - cdf(Zd, a))
