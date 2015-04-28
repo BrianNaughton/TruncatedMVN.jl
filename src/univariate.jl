@@ -19,7 +19,7 @@ immutable TruncatedNormalSampler <: Sampleable{Univariate, Continuous}
   sgn::Int64       # Change sign of result to be returned?
 end
 
-function TruncatedNormalSampler(a, b)
+function TruncatedNormalSampler(a::Float64, b::Float64)
   m::ASCIIString
   sgn = 1
   a0 = 0.2570
@@ -52,40 +52,48 @@ function TruncatedNormalSampler(a, b)
 end
 
 function rand(s::TruncatedNormalSampler)
-  a = s.a
-  b = s.b
-  sgn = s.sgn
+#   a = s.a
+#   b = s.b
+#   sgn = s.sgn
   if s.m == "NR"
     while true
       x = randn()
-      x >= a && x <= b && return x*sgn
+      x >= s.a && x <= s.b && return x*s.sgn
     end
   elseif s.m == "HR"
     while true
       x = abs(randn())
-      x >= a && x <= b && return x*sgn
+      x >= s.a && x <= s.b && return x*s.sgn
     end
   elseif s.m == "UR"
     Zd = Normal(0, 1)
-    Uab = Uniform(a, b)
-    pc = (cdf(Zd, b) - cdf(Zd, a))
-    if a >= 0
-      pc *= exp(a^2/2)
-    elseif b <= 0
-      pc *= exp(b^2/2)
+    Uab = Uniform(s.a, s.b)
+    pc = (cdf(Zd, s.b) - cdf(Zd, s.a))
+    if s.a >= 0
+      pc *= exp(s.a^2/2)
+    elseif s.b <= 0
+      pc *= exp(s.b^2/2)
     end
+    u = 0.0
+    x = 0.0
     while true
       u = rand()
       x = rand(Uab)
-      u < exp(-x^2/2) * pc && return x*sgn
+      u < exp(-x^2/2) * pc && return x*s.sgn
     end
   elseif s.m == "ER"
+    λ = (s.a + sqrt(s.a^2 + 4)) / 2
+    u = 0.0
+    x = 0.0
+    p = 0.0
     while true
-      λ = (a + sqrt(a^2 + 4)) / 2
-      x = randexp() / λ + a
+      x = randexp() / λ + s.a
       u = rand()
       p = exp(-(x-λ)^2 / 2)
-      u < p && x <= b && return x*sgn
+      u < p && x <= s.b && return x*s.sgn
     end
   end
 end
+
+
+
