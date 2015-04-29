@@ -100,6 +100,3 @@ function rand(s::TruncatedNormalSampler)
     end
   end
 end
-
-
-

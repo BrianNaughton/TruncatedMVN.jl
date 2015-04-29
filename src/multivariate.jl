@@ -8,25 +8,19 @@
 # doi: 10.1080/15598608.2014.996690
 # http://dx.doi.org/10.1080/15598608.2014.996690
 
-# using TruncatedMVN
-# using Distributions
-# using Convex, SCS
-
 function GibbsTMVN(μ, Σ, c, d, R̃, NumSamples = 10000,
                    x_init = zeros(length(μ)))
   p = length(μ)
   m = size(R̃, 1)
   samples = zeros(p, NumSamples)
-#   samples = zeros(NumSamples, p)
   Σhalf = chol(Σ)'
   Σhalfinv = Σhalf \ eye(m)
   R = R̃ * Σhalf
   a = c - R̃ * μ
   b = d - R̃ * μ
-#   x = zeros(4)
-#   x = copy(x_init)
   x = Σhalfinv * (x_init - μ)
   Rx = R * x
+
   # Make sure starting value is feasible:
   if !(all(Rx .>= a) && all(Rx .<= b))
     x = getFeasiblePoint(a, b, R)
@@ -36,18 +30,13 @@ function GibbsTMVN(μ, Σ, c, d, R̃, NumSamples = 10000,
   bstar = Inf
   tmp_l = zeros(m)
   tmp_u = zeros(m)
-#   rx_mi = zeros(m)
 
   for iter = 1:NumSamples
     for i = 1:p
-#       bds = GetBounds(a, b, R, x, i)
       GetBounds!(astar, bstar, tmp_l, tmp_u, a, b, R, x, i)
-#       Spl = TruncatedNormalSampler(bds[1], bds[2])
       Spl = TruncatedNormalSampler(astar, bstar)
       x[i] = rand(Spl)
     end
-#     samples[:, iter] = Σhalf * x + μ
-#     samples[iter, :] = Σhalf * x + μ
     samples[:, iter] = x
   end
 
@@ -83,14 +72,8 @@ function GetBounds!(astar::Float64, bstar::Float64, tmp_l::Vector{Float64},
   p = size(R, 2)
   tmp_l[:] = 0.0
   tmp_u[:] = 0.0
-#   rx_mi[:] = 0.0
   astar = -Inf
   bstar = Inf
-#   for k = 1:p
-#     for j = 1:m
-#        k != i ? rx_mi[j] += R[j, k] * x[k] : continue
-#     end
-#   end
 
   for j = 1:m
     for k = 1:m
@@ -105,8 +88,6 @@ function GetBounds!(astar::Float64, bstar::Float64, tmp_l::Vector{Float64},
     tmp_u[j] /= R[j, i]
   end
 
-#   astar = -Inf
-#   bstar = Inf
   for j = 1:m
     if R[j, i] > 0
       astar = max(tmp_l[j], astar)
@@ -116,9 +97,4 @@ function GetBounds!(astar::Float64, bstar::Float64, tmp_l::Vector{Float64},
       bstar = min(tmp_l[j], bstar)
     end
   end
-#   astar = maximum([tmp_l[posidx], tmp_u[negidx]])
-#   bstar = minimum([tmp_l[negidx], tmp_u[posidx]])
-#   return (astar, bstar)
-#   nothing
 end
-
