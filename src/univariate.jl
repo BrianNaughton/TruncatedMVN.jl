@@ -25,7 +25,9 @@ function TruncatedNormalSampler(a::Float64, b::Float64)
   a0 = 0.2570
 
   # Needs to work for untruncated regions
-  a == -Inf && b == Inf && return TruncatedNormalSampler(a, b, "NR", sgn)
+  if a == -Inf && b == Inf
+    return TruncatedNormalSampler(a, b, "NR", sgn)
+  end
 
   # Symmetric case, return negative of result
   if b <= 0  || a == -Inf
@@ -35,8 +37,8 @@ function TruncatedNormalSampler(a::Float64, b::Float64)
     b = -olda
   end
 
-  b1 = a + sqrt(π/2) * exp(a^2/2)
-  b2 = a + 2 / (a + sqrt(a^2 + 4)) * exp((a^2 - a*sqrt(a^2 +4))/4 + .5)
+  b1 = a + sqrt(π/2) * exp(a*a/2)
+  b2 = a + 2 / (a + sqrt(a*a + 4)) * exp((a*a - a*sqrt(a*a +4))/4 + .5)
 
   # Determine method to use
   a < 0 ?
@@ -63,26 +65,30 @@ function rand(s::TruncatedNormalSampler)
   elseif s.m == "HR"
     while true
       x = abs(randn())
-      x >= s.a && x <= s.b && return x*s.sgn
+      if x >= s.a && x <= s.b
+        return x*s.sgn
+      end
     end
   elseif s.m == "UR"
     Zd = Normal(0, 1)
     Uab = Uniform(s.a, s.b)
     pc = (cdf(Zd, s.b) - cdf(Zd, s.a))
     if s.a >= 0
-      pc *= exp(s.a^2/2)
+      pc *= exp(s.a*s.a/2)
     elseif s.b <= 0
-      pc *= exp(s.b^2/2)
+      pc *= exp(s.b*s.b/2)
     end
     u = 0.0
     x = 0.0
     while true
       u = rand()
       x = rand(Uab)
-      u < exp(-x^2/2) * pc && return x*s.sgn
+      if u < exp(-x*x/2) * pc
+        return x*s.sgn
+      end
     end
   elseif s.m == "ER"
-    λ = (s.a + sqrt(s.a^2 + 4)) / 2
+    λ = (s.a + sqrt(s.a*s.a + 4)) / 2
     u = 0.0
     x = 0.0
     p = 0.0
