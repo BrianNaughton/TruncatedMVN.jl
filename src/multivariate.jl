@@ -12,64 +12,6 @@
 # using Distributions
 # using Convex, SCS
 
-function GetBounds(a::Array{Float64}, b::Vector{Float64}, R::Matrix{Float64},
-                   x::Vector{Float64}, i::Int)
-  m = size(R, 1)
-  p = size(R, 2)
-  tmp_l = zeros(m)
-  tmp_u = zeros(m)
-  rx_mi = zeros(m)
-  for j = 1:m
-    for k = 1:m
-       k != i ? rx_mi[j] += R[j, k] * x[k] : continue
-    end
-  end
-#   posidx = R[:, i] .> 0
-#   negidx = R[:, i] .< 0
-
-#   # Faster:
-#   posidx = falses(m)
-#   negidx = falses(m)
-#   for j = 1:m
-#     if R[j, i] > 0
-#       posidx[j] = true
-#     elseif R[j, i] < 0
-#       negidx[j] = true
-#     end
-#   end
-
-#   tmp_l = (a - rx_mi) ./ R[:, i]
-#   tmp_u = (b - rx_mi) ./ R[:, i]
-  # Faster:
-  for j = 1:m
-    for k = 1:m
-      if k != i
-        tmp_l[j] -= R[j, k] * x[k]
-      end
-    end
-    tmp_u[j] = copy(tmp_l[j])
-    tmp_l[j] += a[j]
-    tmp_l[j] /= R[j, i]
-    tmp_u[j] += b[j]
-    tmp_u[j] /= R[j, i]
-  end
-
-  astar = -Inf
-  bstar = Inf
-  for j = 1:m
-    if R[j, i] > 0
-      astar = max(tmp_l[j], astar)
-      bstar = min(tmp_u[j], bstar)
-    elseif R[j, i] < 0
-      astar = max(tmp_u[j], astar)
-      bstar = min(tmp_l[j], bstar)
-    end
-  end
-#   astar = maximum([tmp_l[posidx], tmp_u[negidx]])
-#   bstar = minimum([tmp_l[negidx], tmp_u[posidx]])
-  return (astar, bstar)
-end
-
 function GibbsTMVN(μ, Σ, c, d, R̃, NumSamples = 10000,
                    x_init = zeros(length(μ)))
   p = length(μ)
