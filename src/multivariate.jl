@@ -26,22 +26,23 @@ function GibbsTMVN(μ, Σ, c, d, R̃, NumSamples = 10000,
     x = getFeasiblePoint(a, b, R)
   end
 
-  astar = -Inf
-  bstar = Inf
+  bounds = [-Inf, Inf]
   tmp_l = zeros(m)
   tmp_u = zeros(m)
 
   for iter = 1:NumSamples
     for i = 1:p
-      GetBounds!(astar, bstar, tmp_l, tmp_u, a, b, R, x, i)
-      Spl = TruncatedNormalSampler(astar, bstar)
+      bounds[1] = -Inf
+      bounds[2] = Inf
+      GetBounds!(bounds, tmp_l, tmp_u, a, b, R, x, i)
+      Spl = TruncatedNormalSampler(bounds[1], bounds[2])
       x[i] = rand(Spl)
     end
     samples[:, iter] = x
   end
 
-  @simd for iter = 1:NumSamples
-     @inbounds samples[:, iter] = Σhalf * samples[:, iter] + μ
+  for iter = 1:NumSamples
+     samples[:, iter] = Σhalf * samples[:, iter] + μ
   end
   return samples
 end
@@ -64,16 +65,14 @@ function getFeasiblePoint(a::Vector{Float64}, b::Vector{Float64}, R::Matrix{Floa
   return vec(x.value)
 end
 
-function GetBounds!(astar::Float64, bstar::Float64, tmp_l::Vector{Float64},
-                    tmp_u::Vector{Float64}, # rx_mi::Vector{Float64},
-                    a::Array{Float64}, b::Vector{Float64}, R::Matrix{Float64},
+function GetBounds!(bounds::Vector{Float64}, tmp_l::Vector{Float64},
+                    tmp_u::Vector{Float64}, a::Array{Float64},
+                    b::Vector{Float64}, R::Matrix{Float64},
                     x::Vector{Float64}, i::Int)
   m = size(R, 1)
   p = size(R, 2)
   tmp_l[:] = 0.0
   tmp_u[:] = 0.0
-  astar = -Inf
-  bstar = Inf
 
   for j = 1:m
     for k = 1:m
@@ -90,11 +89,13 @@ function GetBounds!(astar::Float64, bstar::Float64, tmp_l::Vector{Float64},
 
   for j = 1:m
     if R[j, i] > 0
-      astar = max(tmp_l[j], astar)
-      bstar = min(tmp_u[j], bstar)
+      bounds[1] = max(tmp_l[j], bounds[1])
+      bounds[2] = min(tmp_u[j], bounds[2])
     elseif R[j, i] < 0
-      astar = max(tmp_u[j], astar)
-      bstar = min(tmp_l[j], bstar)
+      bounds[1] = max(tmp_u[j], bounds[1])
+      bounds[2] = min(tmp_l[j], bounds[2])
     end
   end
+  nothing
 end
+
